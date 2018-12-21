@@ -41,6 +41,7 @@ Partial Class Form1
         Me.Button4 = New System.Windows.Forms.Button()
         Me.TextBox3 = New System.Windows.Forms.TextBox()
         Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
+        Me.Button1 = New System.Windows.Forms.Button()
         Me.GroupBox1.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -63,7 +64,7 @@ Partial Class Form1
         Me.GroupBox1.Size = New System.Drawing.Size(310, 241)
         Me.GroupBox1.TabIndex = 0
         Me.GroupBox1.TabStop = False
-        Me.GroupBox1.Text = "输入参数"
+        Me.GroupBox1.Text = "订单导入"
         '
         'Label6
         '
@@ -72,7 +73,7 @@ Partial Class Form1
         Me.Label6.Name = "Label6"
         Me.Label6.Size = New System.Drawing.Size(17, 12)
         Me.Label6.TabIndex = 11
-        Me.Label6.Text = "秒"
+        Me.Label6.Text = "页"
         '
         'ComboBox1
         '
@@ -102,6 +103,7 @@ Partial Class Form1
         Me.TextBox2.Name = "TextBox2"
         Me.TextBox2.Size = New System.Drawing.Size(23, 21)
         Me.TextBox2.TabIndex = 7
+        Me.TextBox2.Text = "1"
         '
         'TextBox1
         '
@@ -135,7 +137,7 @@ Partial Class Form1
         Me.Label3.Name = "Label3"
         Me.Label3.Size = New System.Drawing.Size(59, 12)
         Me.Label3.TabIndex = 2
-        Me.Label3.Text = "循环时间:"
+        Me.Label3.Text = "起始页码:"
         '
         'Label2
         '
@@ -153,11 +155,11 @@ Partial Class Form1
         Me.Label1.Name = "Label1"
         Me.Label1.Size = New System.Drawing.Size(59, 12)
         Me.Label1.TabIndex = 0
-        Me.Label1.Text = "选择账号:"
+        Me.Label1.Text = "选择平台:"
         '
         'Button2
         '
-        Me.Button2.Location = New System.Drawing.Point(349, 21)
+        Me.Button2.Location = New System.Drawing.Point(348, 24)
         Me.Button2.Name = "Button2"
         Me.Button2.Size = New System.Drawing.Size(75, 23)
         Me.Button2.TabIndex = 2
@@ -166,7 +168,7 @@ Partial Class Form1
         '
         'Button3
         '
-        Me.Button3.Location = New System.Drawing.Point(345, 124)
+        Me.Button3.Location = New System.Drawing.Point(348, 86)
         Me.Button3.Name = "Button3"
         Me.Button3.Size = New System.Drawing.Size(75, 23)
         Me.Button3.TabIndex = 3
@@ -175,7 +177,7 @@ Partial Class Form1
         '
         'Button4
         '
-        Me.Button4.Location = New System.Drawing.Point(345, 227)
+        Me.Button4.Location = New System.Drawing.Point(348, 148)
         Me.Button4.Name = "Button4"
         Me.Button4.Size = New System.Drawing.Size(75, 23)
         Me.Button4.TabIndex = 4
@@ -194,18 +196,31 @@ Partial Class Form1
         'Timer1
         '
         '
+        'Button1
+        '
+        Me.Button1.BackColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(224, Byte), Integer), CType(CType(192, Byte), Integer))
+        Me.Button1.Location = New System.Drawing.Point(348, 210)
+        Me.Button1.Name = "Button1"
+        Me.Button1.Size = New System.Drawing.Size(75, 23)
+        Me.Button1.TabIndex = 6
+        Me.Button1.Text = "订单检测"
+        Me.Button1.UseVisualStyleBackColor = False
+        '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 12.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink
-        Me.BackgroundImage = Global.WindowsApp1.My.Resources.Resources.timg
+        Me.BackColor = System.Drawing.Color.Maroon
+        Me.BackgroundImage = Global.WindowsApp1.My.Resources.Resources.TIM截图20180508141711
         Me.ClientSize = New System.Drawing.Size(436, 265)
+        Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.Button4)
         Me.Controls.Add(Me.Button3)
         Me.Controls.Add(Me.Button2)
-        Me.Controls.Add(Me.TextBox3)
         Me.Controls.Add(Me.GroupBox1)
+        Me.Controls.Add(Me.TextBox3)
+        Me.HelpButton = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.MaximizeBox = False
         Me.Name = "Form1"
@@ -234,4 +249,5 @@ Partial Class Form1
     Friend WithEvents Button4 As Button
     Friend WithEvents TextBox3 As TextBox
     Friend WithEvents Timer1 As Timer
+    Friend WithEvents Button1 As Button
 End Class

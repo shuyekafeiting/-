@@ -11,7 +11,10 @@ Public Class Form1
     Dim ar As Array
     Private page = 0 '页码
     Private time = Format(Now, "yyyyMMdd")
-     Private ifpei = 0
+    Private ifpei = 0
+    Public pageIndex = 0 '起始页
+    Private ifStart = 0 '是否正在运行
+    Private ifStop = 0 '是否手动停止
     Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
 
     End Sub
@@ -41,11 +44,11 @@ Public Class Form1
 
         '线上版本
         Dim vesionTable As DataTable
-        vesionTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM `jd_vesion` ")
+        vesionTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM `pdd_vesion` ")
         Try
             '判断exe版本
             Dim exeVesionTable As DataTable
-            exeVesionTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM `jd_vesion` ")
+            exeVesionTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM `pdd_vesion` ")
             If exeVesionStr <> exeVesionTable.Rows(0)("exe_vesion").ToString Then
                 InputBox("该程序的最新版本已经发布,手动复制并打开浏览器进行下载?", "下载最新版", exeVesionTable.Rows(0)("exe_url").ToString)
                 Me.Close()
@@ -56,11 +59,10 @@ Public Class Form1
                 'MessageBox.Show("版本相同")
                 '循环时间
                 Dim time As String = p("time").ToString()
-                Me.TextBox2.Text = time
                 Me.TextBox1.ReadOnly = True
                 Me.TextBox3.Hide()
                 Me.TextBox2.Focus()
-                Me.Text = "京东导单程序_" & exeVesionStr
+                Me.Text = "拼多多导单_" & exeVesionStr
                 '转换数组
                 Me.ar = p("acc").ToArray()
                 '遍历数组
@@ -78,7 +80,7 @@ Public Class Form1
 
                 Dim accTable As DataTable
                 '尝试连接数据库(实例代码已经调通)
-                accTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM  `jd_acc` WHERE 1")
+                accTable = Me.Mysqlclient.ExecSelectNo("SELECT * FROM  `pdd_acc` WHERE 1")
 
                 Dim j As Integer
                 '写进配置文件
@@ -92,7 +94,7 @@ Public Class Form1
                     pp("acc")(j)("url") = accTable.Rows(j)("url").ToString
                     j = j + 1
                 Loop
-                pp("vesion") = vesionTable.Rows(0)("vesion").ToString
+                pp("acc_vesion") = vesionTable.Rows(0)("acc_vesion").ToString
                 '转换string后去掉换行
                 Dim jsonStr As String = Replace(Replace(pp.ToString(), vbCr, ""), vbLf, "")
 
@@ -131,8 +133,18 @@ Public Class Form1
     End Sub
 
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+
+        pageIndex = TextBox2.Text() - 1
+
+        'Dim Webcode, Url, PostDate, text
+        'Url = "http://localhost/post/testexe.php"
+        'PostDate = "tpl_ok=&next_target=&tpl=mn&skip_ok=&aid=&need_pay=&need_coin=&pay_method=&u=http://www.baidu.com/&return_method=get&more_param=&return_type=&psp_tt=0&password=31002865&safeflg=0&isphone=tpl&username=����Ƭ�泬&verifycode=&mem_pass=on"
+        'Text = XMLHttpRequest("POST", Url, PostDate)
+        'MessageBox.Show(text)
+
+
         time = Format(DateTimePicker1.Value, "yyyyMMdd")
-        If Timer1.Enabled = False Then
+        If ifStart = 0 Then
             If time > Format(DateTimePicker2.Value, "yyyyMMdd") Then
                 MsgBox("时间参数有误", vbCritical, "参数有误")
                 Return
@@ -157,9 +169,11 @@ Public Class Form1
                 TextBox3.Visible = True
                 TextBox3.Text = "开始执行..."
                 GroupBox1.Visible = False
-                Timer1.Enabled = True
-                Timer1.Interval = TextBox2.Text * 1000
-                Button2.Text = "停止执行"
+
+                ' Timer1.Enabled = True
+                'Timer1.Interval = TextBox2.Text * 1000
+                ifStop = 0
+                ImportTrade()
 
                 '写入配置
                 '取出对象
@@ -174,26 +188,46 @@ Public Class Form1
                 FileClose(2)
             End If
         Else
-            Timer1.Enabled = False
-            Button2.Text = "重新开始"
+            ifStop = 1
             Button2.Enabled = True
+            Button2.Text = "重新执行"
         End If
 
 
     End Sub
 
+    '利用时间定时器出发请求的逻辑(已废弃)
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+
+        'Dim Webcode, Url, PostDate, text
+        'Url = "http://localhost/post/testexe.php"
+        'PostDate = "tpl_ok=&next_target=&tpl=mn&skip_ok=&aid=&need_pay=&need_coin=&pay_method=&u=http://www.baidu.com/&return_method=get&more_param=&return_type=&psp_tt=0&password=31002865&safeflg=0&isphone=tpl&username=����Ƭ�泬&verifycode=&mem_pass=on"
+        'Text = XMLHttpRequest("POST", Url, PostDate)
+        'MessageBox.Show(text)
+
         '是否加换行
-        Dim str As String = TextBox1.Text & time & "&pageIndex=" & page + 1 'url赋值
+        Dim str As String = TextBox1.Text & time & "&page=" & page + 1 'url赋值
+        'Dim str As String = "http://localhost/post/testexe.php"
         page = page + 1
-        Dim responseStr As String = PostRequest("xml内容", str)
+        Dim responseStr As String = XMLHttpRequest("POST", str, "")
 
         '解析json数据
-
-
-
         Try
             Dim p As Linq.JObject = CType(JsonConvert.DeserializeObject(responseStr), Linq.JObject)    '用Newtonsoft.Json反序列json字符串
+            '优先查看服务返回了code=-1
+            Try
+                If p("code").ToString() = "-1" Then
+                    Timer1.Enabled = False
+                    TextBox3.Text = p("data").ToString() & vbCrLf & TextBox3.Text
+                    page = 0
+                    Button2.Text = "重新执行"
+                    Return
+                End If
+            Catch ex As Exception
+                ' MessageBox.Show(ex.Message)
+            End Try
+
+
             If p("end").ToString() = 1 Then
                 '最后一页
                 If time < Format(DateTimePicker2.Value, "yyyyMMdd") Then
@@ -208,7 +242,6 @@ Public Class Form1
 
             End If
             Dim result As String = p("data").ToString()   '提取Json字符串中的“data”值
-
             TextBox3.Text = result & vbCrLf & TextBox3.Text
             FileOpen(1, "log.txt", OpenMode.Append)
             PrintLine(1, result)
@@ -222,10 +255,9 @@ Public Class Form1
             content = responseStr '验证码
             level = "1" '验证码
             auth_code = "xfz178com" '验证码
-            MessageBox.Show(responseStr)
             Dim postData As String = "data_id=" & data_id & "&type=" & type & "&content=" & content & "&level=" & level & "&auth_code=" & auth_code
             Dim url As String = "http://120.79.133.35/mgdb/post_receive.php"
-            Selfpost(url, postData, Me, Timer1)
+            Selfpost(url, postData, Me)
         End Try
 
 
@@ -234,7 +266,7 @@ Public Class Form1
     End Sub
 
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
-        If Timer1.Enabled = True Then
+        If ifStart = 1 Then
             MsgBox("请先停止执行", vbCritical, "操作错误")
             Return
         End If
@@ -248,7 +280,7 @@ Public Class Form1
     End Sub
 
     Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
-        If Timer1.Enabled = True Then
+        If ifStart = 1 Then
             MsgBox("请先停止执行", vbCritical, "操作错误")
         Else
             End
@@ -269,7 +301,93 @@ Public Class Form1
 
     End Sub
 
-    Private Sub Button1_Click_1(sender As Object, e As EventArgs) 
+    Private Sub Button1_Click_1(sender As Object, e As EventArgs)
+
+    End Sub
+
+    Private Sub Button1_Click_2(sender As Object, e As EventArgs) Handles Button1.Click
+        Form2.Show()
+
+    End Sub
+
+    Function ImportTrade()
+        '判断是否是手动停止状态如果是则停止
+        If ifStop = 1 Then
+            ifStart = 0
+            Return 0
+        End If
+        '变更为正在执行的状态
+        ifStart = 1
+        If ifStart = 1 Then
+            Button2.Text = "停止执行"
+        Else
+            Button2.Text = "重新执行"
+        End If
+
+        '是否加换行
+        Dim str As String = TextBox1.Text & time & "&page=" & pageIndex + 1 'url赋值
+
+
+        Dim responseStr As String = XMLHttpRequest("POST", str, "")
+        '解析json数据
+        Try
+            Dim p As Linq.JObject = CType(JsonConvert.DeserializeObject(responseStr), Linq.JObject)    '用Newtonsoft.Json反序列json字符串
+            '优先查看服务返回了code=-1
+            Try
+                If p("code").ToString() = "-1" Then
+                    Timer1.Enabled = False
+                    TextBox3.Text = p("data").ToString() & vbCrLf & TextBox3.Text
+                    'page = 0
+                    'ifStart = 0
+                    'Button2.Text = "重新开始"
+                    'Return 0
+                End If
+            Catch ex As Exception
+                'MessageBox.Show(ex.Message)
+            End Try
+
+            Dim result As String = p("data").ToString()   '提取Json字符串中的“data”值
+            TextBox3.Text = result & vbCrLf & TextBox3.Text
+            If p("end").ToString() = 1 Then
+
+                '最后一页
+                If time < Format(DateTimePicker2.Value, "yyyyMMdd") Then
+                    time = time + 1
+                    pageIndex = 0
+                Else
+                    Timer1.Enabled = False
+                    TextBox3.Text = "执行完成" & vbCrLf & TextBox3.Text
+                    Button2.Text = "重新执行"
+                    ifStart = 0
+                    Return 0
+                End If
+            Else
+                pageIndex = pageIndex + 1
+            End If
+
+
+
+            FileOpen(1, "log.txt", OpenMode.Append)
+            PrintLine(1, result)
+            FileClose(1)
+            ImportTrade()
+        Catch ex As Exception
+            TextBox3.Text = responseStr & vbCrLf & TextBox3.Text
+            'json解析异常的处理
+            '记录错误日志
+            Dim data_id, type, content, level, auth_code As String
+            data_id = "jdimport_exe" 'QQ号码
+            type = "京东导单程序异常" '加密后的QQ密码
+            content = responseStr '验证码
+            level = "1" '验证码
+            auth_code = "xfz178com" '验证码
+            Dim postData As String = "data_id=" & data_id & "&type=" & type & "&content=" & content & "&level=" & level & "&auth_code=" & auth_code
+            Dim url As String = "http://120.79.133.35/mgdb/post_receive.php"
+            Selfpost(url, postData, Me)
+        End Try
+    End Function
+
+    Private Sub TextBox2_TextChanged(sender As Object, e As EventArgs) Handles TextBox2.TextChanged
 
     End Sub
 End Class
@@ -317,8 +435,7 @@ Module Module1
         End Try
     End Function
 
-    Public Function Selfpost(url As String, postdata As String, Ob As Object, timer As Object) As Boolean
-        timer.Enabled = False
+    Public Function Selfpost(url As String, postdata As String, Ob As Object) As Boolean
         ' Create a request using a URL that can receive a post. 
         Dim request As WebRequest = WebRequest.Create(url)
         ' Set the Method property of the request to POST.
@@ -354,13 +471,15 @@ Module Module1
 
         '确认是否关闭程序
 
-        Dim result As DialogResult = MessageBox.Show("程序运行过程出了一点小问题,已经提交到技术部,是否继续运行？", "异常", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
-        If result = DialogResult.OK Then
-            timer.Enabled = False
-            Return True
-        Else
-            Ob.Close()
-        End If
+        'Dim result As DialogResult = MessageBox.Show("程序运行过程出了一点小问题,已经提交到技术部,是否继续运行？", "异常", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+        'If result = DialogResult.OK Then
+        Ob.pageIndex = Ob.pageIndex + 1
+        Ob.ImportTrade()
+
+        Return True
+        ' Else
+        'Ob.Close()
+        'End If
 
 
 
@@ -368,6 +487,47 @@ Module Module1
         dataStream.Close()
         response.Close()
     End Function
+
+    '异步请求防止程序卡死的函数
+    Function XMLHttpRequest(ByVal XmlHttpMode, ByVal XmlHttpURL, ByVal XmlHttpData)
+        Console.WriteLine(XmlHttpURL)
+        Dim MyXmlhttp
+        On Error GoTo wrong
+        MyXmlhttp = CreateObject("WinHttp.WinHttpRequest.5.1")                  '创建WinHttpRequest对象
+        With MyXmlhttp
+            .setTimeouts(50000, 50000, 50000, 50000)                               '设置超时时间
+            If XmlHttpMode = "GET" Then                                             '异步GET请求
+                .Open("GET", XmlHttpURL, True)
+            Else
+                .Open("POST", XmlHttpURL, True)                                     '异步POST请求
+                .setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+            End If
+            .setRequestHeader("Accept", "image/gif,image/x-xbitmap,image/jpeg,image/pjpeg,application/x-shockwave-flash,*/*")
+            '.setRequestHeader("Referer", "https://passport.baidu.com/?login&tpl=mn")
+            .setRequestHeader("Accept-Language", "zh-cn")
+            .setRequestHeader("Accept-Encoding", "deflate")
+            .setRequestHeader("User-Agent", "Mozilla/4.0(compatible;MSIE6.0;WindowsNT5.1;SV1;.NETCLR2.0.50727)")
+            .send(XmlHttpData)
+            .waitForResponse                                                        '异步等待
+
+            If MyXmlhttp.Status = 200 Then                                          '成功获取页面
+                XMLHttpRequest = .ResponseText
+            Else
+                Return "Http错误代码:" & .Status
+                'TextBox3.Text = "Http错误代码:" & .Status & vbCrLf & TextBox3.Text
+                'MsgBox("Http错误代码:" & .Status, vbInformation, "提示")
+            End If
+        End With
+        MyXmlhttp = Nothing
+        Exit Function
+wrong:
+        MsgBox("错误原因:" & Err.Description & "", vbInformation, "提示")
+        MyXmlhttp = Nothing
+    End Function
+
+
+
+
 
 End Module
 
